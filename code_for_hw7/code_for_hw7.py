@@ -93,7 +93,7 @@ class NLL(Module):  # Loss
         return -1.*np.sum(self.Y*np.log(self.Ypred))  # Your code: return loss (scalar)
 
     def backward(self):  # Use stored self.Ypred, self.Y
-        return None  # Your code (?, b)
+        return self.Ypred - self.Y  # Your code (?, b)
 
 
 # Neural Network implementation
@@ -105,7 +105,7 @@ class Sequential:
     def sgd(self, X, Y, iters=100, lrate=0.005):  # Train
         D, N = X.shape
         for it in range(iters):
-            pass  # Your code
+            pass   # Your code
 
     def forward(self, Xt):  # Compute Ypred
         for m in self.modules: Xt = m.forward(Xt)
