@@ -28,7 +28,7 @@ class Linear(Module):
 
     def backward(self, dLdZ):  # dLdZ is (n x b), uses stored self.A
         self.dLdW  = np.dot(self.A, dLdZ.T)  # Your code
-        self.dLdW0 = dLdZ  # Your code
+        self.dLdW0 = dLdZ.sum(axis=1, keepdims=True)  # Your code
         return np.dot(self.W, dLdZ)        # Your code: return dLdA (m x b)
 
     def sgd_step(self, lrate):  # Gradient descent step
@@ -50,24 +50,24 @@ class Tanh(Module):  # Layer activation
         return self.A
 
     def backward(self, dLdA):  # Uses stored self.A
-        dAdZ = 1. - np.tanh(self.A)
+        dAdZ = 1. - self.A**2
         return dLdA*dAdZ # Your code: return dLdZ (?, b)
 
 
 class ReLU(Module):  # Layer activation
     def forward(self, Z):
-        self.A = np.maximum(x, 0)  # Your code: (?, b)
+        self.A = np.maximum(Z, 0)  # Your code: (?, b)
         return self.A
 
     def backward(self, dLdA):  # uses stored self.A
         dAdZ = (self.A > 0) * 1
-        return dLdA  # Your code: return dLdZ (?, b)
+        return dLdA * dAdZ  # Your code: return dLdZ (?, b)
 
 
 class SoftMax(Module):  # Output activation
     def forward(self, Z):
         AZ = np.exp(Z)
-        return AZ/np.sum(SZ)  # Your code: (?, b)
+        return AZ/AZ.sum(axis=0, keepdims=True)  # Your code: (?, b)
 
     def backward(self, dLdZ):  # Assume that dLdZ is passed in
         return dLdZ
@@ -93,10 +93,13 @@ class NLL(Module):  # Loss
         return -1.*np.sum(self.Y*np.log(self.Ypred))  # Your code: return loss (scalar)
 
     def backward(self):  # Use stored self.Ypred, self.Y
+        print("Ypred shape: ", self.Ypred.shape)
+        print("Y shape: ", self.Y.shape)
         return self.Ypred - self.Y  # Your code (?, b)
 
 
 # Neural Network implementation
+## sgd_test(Sequential([Linear(2,3), Tanh(), Linear(3,2), SoftMax()], NLL()), test_1_values)
 class Sequential:
     def __init__(self, modules, loss):  # List of modules, loss module
         self.modules = modules
@@ -104,8 +107,20 @@ class Sequential:
 
     def sgd(self, X, Y, iters=100, lrate=0.005):  # Train
         D, N = X.shape
-        for it in range(iters):
-            pass   # Your code
+        for it in range(iters): 
+            # Your code
+            # randomly select a data point
+            i = np.random.randint(N)
+            Xi = X[:,[i]]
+
+            Ypred = self.forward(Xi)
+            current_loss = self.loss.forward(Ypred, Y[:,[i]])
+
+            self.backward(self.loss.backward()) # backward only iterates over modules, so I think start with NLL backwards?
+
+            self.sgd_step(lrate)
+            self.print_accuracy(it, Xi, Y, current_loss)
+            
 
     def forward(self, Xt):  # Compute Ypred
         for m in self.modules: Xt = m.forward(Xt)
@@ -257,12 +272,12 @@ def sgd_test(nn, test_values):
 # You are encouraged to make your own test cases per each module. An
 # example is given below for the Linear module:
 
+"""
 np.random.seed(0)
 X, Y = super_simple_separable()  # data
 linear_1 = Linear(2, 3)  # module
 learning_rate = 0.005  #hyperparameter
 
-'''
 # test case:
 # forward
 z_1 = linear_1.forward(X)
@@ -294,7 +309,7 @@ exp_linear_1_W0 = np.array([[6.66805339e-09],
                             [-2.90968033e-06],
                             [-1.01331631e-03]]),
 unit_test("linear_sgd_step_W0", exp_linear_1_W0, linear_1.W0)
-'''
+"""
 
 ######################################################################
 
@@ -314,11 +329,11 @@ sgd_test(Sequential([Linear(2,3), ReLU(), Linear(3,2), SoftMax()], NLL()), test_
 
 # TEST 3: you should achieve 100% accuracy on the hard dataset (note
 # that we provided plotting code)
-'''
+#'''
 X, Y = hard()
 nn = Sequential([Linear(2, 10), ReLU(), Linear(10, 10), ReLU(), Linear(10,2), SoftMax()], NLL())
 disp.classify(X, Y, nn, it=100000)
-'''
+#'''
 
 
 # TEST 4: try calling these methods that train with a simple dataset
@@ -349,9 +364,9 @@ def nn_pred_test():
     return nn.modules[-1].class_fun(Ypred).tolist(), [nn.loss.forward(Ypred, Y)]
 
 
-'''
-print(nn_tanh_test())
-'''
+#'''
+#print(nn_tanh_test())
+#'''
 # Expected output
 '''
     [[[1.2473733761848262, 0.2829538808226157, 0.6924193292712828],
@@ -363,9 +378,7 @@ print(nn_tanh_test())
     [-0.0037249480614718, 0.0037249480614718]]]
 '''
 
-'''
-print(nn_relu_test())
-'''
+#print(nn_relu_test())
 # Expected output
 '''
     [[[1.2421914999646917, 0.2851239946607419, 0.6905003767490479],
@@ -377,9 +390,7 @@ print(nn_relu_test())
     [-0.004252310922204504, 0.004252310922204505]]]
 '''
 
-'''
-print(nn_pred_test())
-'''
+#print(nn_pred_test())
 # Expected output:
 '''
     ([0, 0, 0, 0], [8.56575061835767])
