@@ -46,6 +46,11 @@ class MDP:
                 self.init_state() if self.terminal(s) else
                     self.transition_model(s, a).draw())
 
+    def state2vec(self, s):
+        v = np.zeros((1, len(self.states)))
+        v[0,self.states.index(s)] = 1.
+        return v
+
 # Perform value iteration on an MDP, also given an instance of a q
 # function.  Terminate when the max-norm distance between two
 # successive value function estimates is less than eps.
@@ -202,18 +207,29 @@ def evaluate(mdp, n_episodes, episode_length, policy):
 def Q_learn_batch(mdp, q, lr=.1, iters=100, eps=0.5,
                   episode_length=10, n_episodes=2,
                   interactive_fn=None):
-    # Your code here
-    mdp.init_state()
-    s = mdp.start_state()
+                      
+    def gen_policy(q_in):
+        def ep_q(s):
+            return epsilon_greedy(q_in, s)
+        return ep_q
+        
+    s = mdp.init_state()
+    experiences = [] # [(s,a,r,s')]
     for i in range(iters):
-        a = epsilon_greedy(q, s)
-        r, s_prime = mdp.sim_transition(s, a)
-        q_max = value(q, s_prime)
-        t = r + mdp.discount_factor*q_max
-        q.update([(s, a, t)], lr)
-        # include this line in the iteration, where i is the iteration number
+        policy = gen_policy(q)
+        for ep in range(n_episodes):
+            r, episode, anim = sim_episode(mdp, episode_length, policy)
+            experiences += episode 
+        all_q_targets = []
+        for exp in experiences:
+            s, a, r, s_prime = exp
+            future_val = 0 if mdp.terminal(s) else value(q, s_prime)
+            t = r + mdp.discount_factor * future_val
+            all_q_targets.append((s, a, t))
+        
+        q.update(all_q_targets, lr)
         if interactive_fn: interactive_fn(q, i)
-
+    return q
 
 def make_nn(state_dim, num_hidden_layers, num_units):
     model = Sequential()

@@ -33,5 +33,15 @@ def testQ():
     qf = Q_learn(tiny, q)
     return list(qf.q.items())
 
+def testBatchQ():
+    tiny = MDP([0, 1, 2, 3, 4], ['a', 'b'], tinyTrans, tinyR, 0.9)
+    tiny.terminal = tinyTerminal
+    q = TabularQ(tiny.states, tiny.actions)
+    qf = Q_learn_batch(tiny, q)
+    return list(qf.q.items())
+
+
+
 random.seed(0)
-print(testQ())
+#print(testQ())
+print(testBatchQ())
