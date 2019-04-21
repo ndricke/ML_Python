@@ -40,8 +40,14 @@ def testBatchQ():
     qf = Q_learn_batch(tiny, q)
     return list(qf.q.items())
 
-
+def test_NNQ(data):
+    tiny = MDP([0, 1, 2, 3, 4], ['a', 'b'], tinyTrans, tinyR, 0.9)
+    tiny.terminal = tinyTerminal
+    q = NNQ(tiny.states, tiny.actions, tiny.state2vec, 2, 10)
+    q.update(data, 1)
+    return [q.get(s,a) for s in q.states for a in q.actions]
 
 random.seed(0)
 #print(testQ())
-print(testBatchQ())
+#print(testBatchQ())
+print(test_NNQ([(0,'a',0.3),(1,'a',0.1),(0,'a',0.1),(1,'a',0.5)]))
