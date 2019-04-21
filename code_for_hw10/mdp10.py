@@ -244,13 +244,20 @@ class NNQ:
     def __init__(self, states, actions, state2vec, num_layers, num_units, epochs=1):
         self.actions = actions
         self.states = states
-        self.state2vec = state2vec
         self.epochs = epochs
-        self.models = None              # Your code here
-        if self.models is None: raise NotImplementedError('NNQ.models')
+        self.state2vec = state2vec
+        # make a dictionary with one entry for each action
+        self.models = {}              # Your code here
+        for a in self.actions:
+            self.models[a] = make_nn(len(states), num_layers, num_units)
+
     def get(self, s, a):
         # Your code here
-        raise NotImplementedError('NNQ.get')
-    def update(self, data, lr):
+        return self.models[a].predict(s)
+
+    def update(self, data, lr, epochs=1):
         # Your code here
-        raise NotImplementedError('NNQ.update')
+        for a in self.actions:
+
+
+            self.models[a].fit(X, Y, epochs=epochs)
