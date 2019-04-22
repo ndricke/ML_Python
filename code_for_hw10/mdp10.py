@@ -204,32 +204,24 @@ def evaluate(mdp, n_episodes, episode_length, policy):
         # print('    ', r, len(e))
     return score/n_episodes, length/n_episodes
 
-def Q_learn_batch(mdp, q, lr=.1, iters=100, eps=0.5,
-                  episode_length=10, n_episodes=2,
-                  interactive_fn=None):
                       
-    def gen_policy(q_in):
-        def ep_q(s):
-            return epsilon_greedy(q_in, s)
-        return ep_q
-        
-    s = mdp.init_state()
-    experiences = [] # [(s,a,r,s')]
+def Q_learn_batch(mdp, q, lr=.1, iters=100, eps=0.5,
+                               episode_length=10, n_episodes=2,
+                  interactive_fn=None):
+    all_experiences = []
+    explore = lambda s: epsilon_greedy(q,s,eps)
     for i in range(iters):
-        policy = gen_policy(q)
-        for ep in range(n_episodes):
-            r, episode, anim = sim_episode(mdp, episode_length, policy)
-            experiences += episode 
+        for e in range(n_episodes):
+            _, episode, _ = sim_episode(mdp, episode_length, explore)
+            all_experiences += episode
         all_q_targets = []
-        for exp in experiences:
-            s, a, r, s_prime = exp
-            future_val = 0 if mdp.terminal(s) else value(q, s_prime)
-            t = r + mdp.discount_factor * future_val
-            all_q_targets.append((s, a, t))
-        
+        for (s, a, r, s_prime) in all_experiences:
+            future_val = 0 if s_prime is None else value(q, s_prime)
+            all_q_targets.append((s, a, (r + mdp.discount_factor * future_val)))
         q.update(all_q_targets, lr)
         if interactive_fn: interactive_fn(q, i)
     return q
+
 
 def make_nn(state_dim, num_hidden_layers, num_units):
     model = Sequential()
@@ -246,32 +238,18 @@ class NNQ:
         self.states = states
         self.epochs = epochs
         self.state2vec = state2vec
-        # make a dictionary with one entry for each action
-        self.models = {}              # Your code here
-        for a in self.actions:
-            self.models[a] = make_nn(len(states), num_layers, num_units)
+        state_dim = state2vec(states[0]).shape[1] # a row vector
+        self.models = {a:make_nn(state_dim, num_layers, num_units) for a in actions}
 
     def get(self, s, a):
-        # Your code here
-        return self.models[a].predict(s)
+        return self.models[a].predict(self.state2vec(s))
 
-    def update(self, data, lr, epochs=1):
-        # Your code here
-        print(self.actions)
-        for a_fit in self.actions:
-            print(a_fit)
-            X_list = []; Y_list = [];
-            for tup in data:
-                s, a, t = tup
-                if a == a_fit:
-                    X_list.append(s)
-                    Y_list.append([t])
-            if len(Y_list) > 0:
-                print(X_list, Y_list)
-                X = np.zeros((len(self.states), len(X_list))).T
-                for i, item in enumerate(X_list):
-                    X[:,i] = item
-                Y = np.array(Y_list)#.T
-                print(X.shape)
-                print(Y.shape)
-                self.models[a_fit].fit(X, Y, epochs=epochs) 
+    def update(self, data, lr):
+        for a in self.actions:
+            if [s for (s, at, t) in data if a==at]:
+                X = np.vstack([self.state2vec(s) for (s, at, t) in data if a==at])
+                Y = np.vstack([t for (s, at, t) in data if a==at])
+                self.models[a].fit(X, Y, epochs = self.epochs, verbose = False)
+
+
+

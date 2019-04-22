@@ -262,12 +262,22 @@ def test_solve_play(d = 6, draw=False,
 ##########   Test cases    
 
 # Value Iteration
-# test_solve_play()
+#test_solve_play(draw=True)
+
 # Tabular Q-learn
-# test_learn_play(iters=100000, tabular=True, batch=False)
+#test_learn_play(iters=10000000, tabular=True, batch=False)
+
 # Tabular Batch Q-learn
-# test_learn_play(iters=10, tabular=True, batch=True) # Check: why do we want fewer iterations here?
+#test_learn_play(iters=500, tabular=True, batch=True) # Check: why do we want fewer iterations here?
+
 # NN Q-learn
-# test_learn_play(iters=100000, tabular=False, batch=False)
+test_learn_play(iters=100000, tabular=False, batch=False)
+
 # NN Batch Q-learn (Fitted Q-learn)
-# test_learn_play(iters=10, tabular=False, batch=True)
+#test_learn_play(iters=100, tabular=False, batch=True)
+
+
+
+
+
+
